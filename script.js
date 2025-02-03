@@ -1,25 +1,49 @@
+async function handleSubmit() {
+  try {
+    // First save to Firebase
+    await submitForm();
+    
+    // Then generate and download image
+    downloadAsImage();
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    alert(error.message || "양식 제출 중 오류가 발생했습니다.");
+  }
+}
+
+function validateForm() {
+  const requiredFields = ['userid', 'contact', 'userpw_re', 'sample6_address', 'membership'];
+  for (const fieldId of requiredFields) {
+    const field = document.getElementById(fieldId);
+    if (!field || !field.value.trim()) {
+      throw new Error(`필수 항목을 모두 입력해주세요.`);
+    }
+  }
+  return true;
+}
+
 function downloadAsImage() {
   const container = document.querySelector('.container');
   html2canvas(container).then(canvas => {
     console.log("📸 html2canvas 실행 완료");
-    
+
     // Get current date in YYMMDD format
     const now = new Date();
     const year = now.getFullYear().toString().slice(2);
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const day = now.getDate().toString().padStart(2, '0');
     const dateStr = year + month + day;
-    
+
     // Get member name
     const memberName = document.getElementById('userid').value;
-    
+
     // Get current numbering (stored in localStorage)
     let dailyNumber = parseInt(localStorage.getItem(`signup_number_${dateStr}`) || '0') + 1;
     localStorage.setItem(`signup_number_${dateStr}`, dailyNumber);
-    
+
     // Create filename
     const fileName = `${dateStr}${dailyNumber.toString().padStart(2, '0')}_회원가입계약서_${memberName}.jpg`;
-    
+
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/jpeg');
     link.download = fileName;
@@ -85,85 +109,6 @@ function downloadAsImage() {
     console.error("❌ html2canvas 실행 중 오류 발생:", error);
   });
 }
-
-// 📌 구글 드라이브에 업로드
-async function uploadToDrive() {
-  const container = document.querySelector('.container');
-
-  // ✅ 로딩 팝업 생성
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
-  `;
-
-  const popup = document.createElement('div');
-  popup.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 1000;
-    text-align: center;
-  `;
-
-  const loadingText = document.createElement('p');
-  loadingText.textContent = '파일 생성 중...';
-  popup.appendChild(loadingText);
-
-  document.body.appendChild(overlay);
-  document.body.appendChild(popup);
-
-  // ✅ html2canvas 실행하여 이미지 캡처
-  html2canvas(container).then(canvas => {
-    loadingText.textContent = '파일 업로드 중...';
-
-    // ✅ 캡처한 이미지를 JPG 파일로 변환
-    canvas.toBlob(async (blob) => {
-      const fileName = "회원가입.jpg";
-
-      const formData = new FormData();
-      formData.append('file', blob, fileName);
-
-      try {
-        // ✅ Google Drive로 업로드 (Apps Script URL 필요)
-        const response = await fetch('https://script.google.com/macros/s/AKfycbz9MVpFEN_rtk_uf4WJ1xiurxNn1mnHJxJrnRGVB4_EURyxTI0SrIf0H0AApJwvPN5_/exec', {
-          method: 'POST',
-          body: formData
-        });
-
-        // ✅ 팝업 닫기
-        document.body.removeChild(overlay);
-        document.body.removeChild(popup);
-
-        if (response.ok) {
-          alert('파일이 성공적으로 업로드되었습니다.');
-        } else {
-          throw new Error('업로드 실패');
-        }
-      } catch (error) {
-        document.body.removeChild(overlay);
-        document.body.removeChild(popup);
-        console.error('Upload error:', error);
-        alert('업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-      }
-    }, 'image/jpeg', 0.9);
-  }).catch(error => {
-    document.body.removeChild(overlay);
-    document.body.removeChild(popup);
-    console.error('Canvas error:', error);
-    alert('이미지 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
-  });
-}
-
 
 // 📌Canvas
 document.addEventListener('DOMContentLoaded', function() {
@@ -568,7 +513,7 @@ function calculateTotal() {
   const lockerPrice = parseInt(document.getElementById('locker_price').value.replace(/[^\d]/g, '') || 0);
   const membershipFee = parseInt(document.getElementById('membership_fee').value.replace(/[^\d]/g, '') || 0);
   const discount = parseInt(document.getElementById('discount').value.replace(/[^\d]/g, '') || 0);
-  
+
   const total = rentalPrice + lockerPrice + membershipFee - discount;
   const totalAmount = document.getElementById('total_amount');
   totalAmount.value = '₩ ' + total.toLocaleString('ko-KR');
@@ -646,7 +591,7 @@ function formatMonths(input) {
 function updateAdmissionFee() {
   const membershipSelect = document.getElementById("membership");
   const admissionFeeInput = document.getElementById("admission_fee");
-  
+
   if (!membershipSelect || !admissionFeeInput) return;
 
   let fee = 0;
@@ -659,75 +604,6 @@ function updateAdmissionFee() {
   admissionFeeInput.readOnly = true;
 }
 
-function uploadToDrive() {
-  const container = document.querySelector('.container');
-
-  // Create loading popup
-  const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
-  `;
-
-  const popup = document.createElement('div');
-  popup.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 1000;
-    text-align: center;
-  `;
-
-  const loadingText = document.createElement('p');
-  loadingText.textContent = '파일 생성 중...';
-  popup.appendChild(loadingText);
-
-  document.body.appendChild(overlay);
-  document.body.appendChild(popup);
-
-  html2canvas(container).then(canvas => {
-    loadingText.textContent = '파일 업로드 중...';
-
-    canvas.toBlob(blob => {
-      const formData = new FormData();
-      formData.append('file', blob, '회원가입.jpg');
-
-      fetch('https://script.google.com/macros/s/AKfycby9SCaMtkGleW2Y92JVTUP_WG2_QKPfh9gnbLJ3zwBxdUPAeGAz8l5sgjrHD_W4X2EZ/exec', {
-        method: 'POST',
-        body: formData
-      })
-        .then(response => {
-          document.body.removeChild(overlay);
-          document.body.removeChild(popup);
-          if (response.ok) {
-            alert('파일이 성공적으로 업로드되었습니다.');
-          } else {
-            throw new Error('업로드 실패');
-          }
-        })
-        .catch(error => {
-          document.body.removeChild(overlay);
-          document.body.removeChild(popup);
-          console.error('Upload error:', error);
-          alert('업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
-        });
-    }, 'image/jpeg', 0.9);
-  }).catch(error => {
-    document.body.removeChild(overlay);
-    document.body.removeChild(popup);
-    console.error('Canvas error:', error);
-    alert('이미지 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
-  });
-}
 function showDiscountPopup() {
   const popup = document.createElement('div');
   popup.style.cssText = `
@@ -756,13 +632,14 @@ function showDiscountPopup() {
 
   const discountContainer = document.createElement('div');
   discountContainer.id = 'discount-items';
-  
+
   function addDiscountRow() {
     const row = document.createElement('div');
     row.style.marginBottom = '10px';
     row.style.display = 'flex';
     row.style.gap = '10px';
-    
+    row.style.alignItems = 'center';
+
     const select = document.createElement('select');
     select.style.cssText = 'flex: 1; padding: 5px; border-radius: 5px;';
     select.innerHTML = `
@@ -771,25 +648,47 @@ function showDiscountPopup() {
       <option value="라커">라커 할인</option>
       <option value="직접입력">직접입력</option>
     `;
-    
+
     const itemInput = document.createElement('input');
     itemInput.type = 'text';
     itemInput.style.cssText = 'flex: 1; padding: 5px; border-radius: 5px; display: none;';
     itemInput.placeholder = '할인 항목 입력';
-    
+
     select.onchange = function() {
       itemInput.style.display = this.value === '직접입력' ? 'block' : 'none';
     };
-    
+
     const input = document.createElement('input');
     input.type = 'text';
     input.style.cssText = 'flex: 1; padding: 5px; border-radius: 5px;';
     input.placeholder = '금액 입력 (₩)';
     input.oninput = function() { formatCurrency(this); };
-    
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '×';
+    deleteBtn.style.cssText = `
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: none;
+      background: #ff4444;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin-left: 5px;
+    `;
+    deleteBtn.onclick = function() {
+      row.remove();
+    };
+
     row.appendChild(select);
     row.appendChild(itemInput);
     row.appendChild(input);
+    row.appendChild(deleteBtn);
     discountContainer.appendChild(row);
   }
 
@@ -818,18 +717,18 @@ function showDiscountPopup() {
     cursor: pointer;
     margin-left: 10px;
   `;
-  
+
   confirmButton.onclick = function() {
     let total = 0;
     discountContainer.querySelectorAll('input').forEach(input => {
       const value = parseInt(input.value.replace(/[^\d]/g, '')) || 0;
       total += value;
     });
-    
+
     const discountInput = document.getElementById('discount');
     discountInput.value = '₩ ' + total.toLocaleString('ko-KR');
     calculateTotal();
-    
+
     document.body.removeChild(overlay);
     document.body.removeChild(popup);
   };
@@ -843,6 +742,6 @@ function showDiscountPopup() {
 
   document.body.appendChild(overlay);
   document.body.appendChild(popup);
-  
+
   addDiscountRow(); // Add first row by default
 }
