@@ -182,26 +182,7 @@ input[name="address"],
   background-color: #0078D7;
 }
 
-.uploadBtn {
-  position: absolute;
-  left: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 130px;
-  height: 40px;
-  color: white;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  background-color: #4CAF50;
-}
 
-.uploadBtn:hover {
-  background-color: #45a049;
-}
 
 .submitBtn:hover {
   background-color: #005bb5;
