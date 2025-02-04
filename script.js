@@ -2,7 +2,7 @@ async function handleSubmit() {
   try {
     // First save to Firebase
     await submitForm();
-    
+
     // Then generate and download image
     downloadAsImage();
   } catch (error) {
