@@ -42,19 +42,27 @@
     }
 
     function formatBirthdate(input) {
+      // 입력값에서 숫자가 아닌 모든 문자를 제거
       let value = input.value.replace(/\D/g, '');
 
-      if (value.length === 6) {
-        value = '19' + value;
+      // 입력값이 8자리가 아닐 경우, 아무 것도 하지 않음
+      if (value.length > 8) {
+        value = value.substring(0, 8); // 8자리 초과 시 잘라냄
       }
 
+      // 8자리일 경우에만 포맷 적용
       if (value.length === 8) {
         const year = value.substring(0, 4);
         const month = value.substring(4, 6);
         const day = value.substring(6, 8);
-        input.value = `${year}-${month}-${day}`;
+
+        // YYYY-MM-DD 형식으로 설정
+        input.value = `${year}-${month}-${day}`; 
+      } else {
+        input.value = value; // 8자리가 아닐 경우, 현재 값 유지
       }
     }
+
 
     function toggleSnsField() {
       const snsField = document.getElementById('snsField');
