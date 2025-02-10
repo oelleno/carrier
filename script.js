@@ -12,7 +12,7 @@ async function handleSubmit() {
 }
 
 function validateForm() {
-  const requiredFields = ['userid', 'contact', 'userpw_re', 'sample6_address', 'membership'];
+  const requiredFields = ['name', 'contact', 'userpw_re', 'main_address', 'membership'];
   for (const fieldId of requiredFields) {
     const field = document.getElementById(fieldId);
     if (!field || !field.value.trim()) {
@@ -35,19 +35,31 @@ function downloadAsImage() {
     const dateStr = year + month + day;
 
     // Get member name
-    const memberName = document.getElementById('userid').value;
+    const memberName = document.getElementById('name').value;
 
-    // Get current numbering (stored in localStorage)
-    let dailyNumber = parseInt(localStorage.getItem(`signup_number_${dateStr}`) || '0') + 1;
-    localStorage.setItem(`signup_number_${dateStr}`, dailyNumber);
+    // Get the docId from Firebase submission
+    const dailyNumber = localStorage.getItem('current_doc_number');
+    if (!dailyNumber) {
+        console.error('Document number not found');
+        return;
+    }
 
-    // Create filename
-    const fileName = `${dateStr}${dailyNumber.toString().padStart(2, '0')}_회원가입계약서_${memberName}.jpg`;
+    // Create filename using Firebase document number
+    const fileName = `${dateStr}_${dailyNumber}_${memberName}.jpg`;
 
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/jpeg');
-    link.download = fileName;
-    link.click();
+    // Convert canvas to blob and upload to Firebase Storage
+    canvas.toBlob(async (blob) => {
+          try {
+            await window.uploadImage(fileName, blob);
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+          } catch (error) {
+            console.error("이미지 업로드 실패:", error);
+          }
+        }, 'image/jpeg');
 
     const overlay = document.createElement('div');
     overlay.style.cssText = `
@@ -262,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function sendit() {
-  const name = document.getElementById('userid'); // 이름
+  const name = document.getElementById('name'); // 이름
   const contact = document.getElementById('contact'); // 연락처
   const birthdate = document.getElementById('userpw_re'); // 생년월일
   const membership = document.getElementById('membership'); // 회원권 선택
@@ -414,7 +426,7 @@ function formatPhoneNumber(input) {
   input.value = value; // 변환된 값 설정
 }
 
-// 📌 오전오후체크
+// 📌 운동시간 체크
 function handleTimeSelect(select) {
   const checkbox = select.parentElement.querySelector('input[type="checkbox"][name="workout_time"]');
   if (select.value !== "") {
@@ -431,7 +443,7 @@ function handleWorkoutTimeChange(checkbox) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     const timeSelects = document.querySelectorAll('select[data-workout-time]');
     timeSelects.forEach(select => {
         select.addEventListener('change', () => handleTimeSelect(select));
@@ -444,10 +456,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// 📌 입력 필드에서 자동 변환 적용
+// 📌 전화번호 입력 필드에서 자동 변환 적용
 document.addEventListener("DOMContentLoaded", function() {
   const phoneInput = document.getElementById("contact");
   if (phoneInput) {
+    // Get phone from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const phone = urlParams.get('phone');
+    if (phone) {
+      phoneInput.value = phone;
+      phoneInput.readOnly = true;
+      phoneInput.style.backgroundColor = '#f5f5f5';
+    }
+
     phoneInput.addEventListener("input", function() {
       formatPhoneNumber(this);
     });
@@ -455,139 +476,203 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-// 회원권 가격 자동입력 함수
-document.addEventListener("DOMContentLoaded", function() {
-  const membershipSelect = document.getElementById("membership");
-  const admissionFeeInput = document.getElementById("admission_fee");
+// 복합결제 payment popup
+function updatePaymentSummary() {
+  const paymentSummary = document.getElementById('payment-summary');
+  const paymentItems = document.querySelectorAll('#payment-items input');
+  const unpaidField = document.getElementById('unpaid');
+  const totalAmountStr = document.getElementById('total_amount').value;
+  const totalAmount = parseInt(totalAmountStr.replace(/[^\d]/g, '')) || 0;
 
-  // ✅ 1. 먼저 함수 정의
-  function updateAdmissionFee() {
-    if (!membershipSelect || !admissionFeeInput) return; // 요소가 없으면 실행 중단
+  let summaryHtml = '';
+  let total = 0;
 
-    let fee = 0;
-    if (membershipSelect.value === "New") {
-      fee = 33000;
+  paymentItems.forEach((input, index) => {
+    if (index % 2 === 0) { // Description input
+      const description = input.value;
+      const amount = paymentItems[index + 1]?.value || '0';
+      if (description && amount) {
+        const numAmount = parseInt(amount.replace(/[^\d]/g, '')) || 0;
+        total += numAmount;
+        summaryHtml += `<div>${description}: ${amount}</div>`;
+      }
     }
+  });
 
-    admissionFeeInput.value = fee.toLocaleString("ko-KR"); // 한국식 콤마 표시
-    admissionFeeInput.style.backgroundColor = "#f5f5f5";
-    admissionFeeInput.readOnly = true;
+  if (paymentSummary) {
+    if (summaryHtml) {
+      summaryHtml += `<div style="margin-top: 8px; border-top: 1px solid #ccc; padding-top: 8px;"><strong>결제완료: ${total.toLocaleString('ko-KR')}원</strong></div>`;
+      paymentSummary.innerHTML = summaryHtml;
+
+      // Calculate and update unpaid amount
+      const unpaidAmount = totalAmount - total;
+      if (unpaidField) {
+        unpaidField.value = '결제예정 ₩' + (unpaidAmount > 0 ? unpaidAmount.toLocaleString('ko-KR') : '0');
+        unpaidField.style.backgroundColor = unpaidAmount > 0 ? '#ffebeb' : '#f5f5f5';
+      }
+    } 
+    
+  }
+}
+
+function showCardPaymentPopup() {
+  const popup = document.createElement('div');
+  popup.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    z-index: 1000;
+    min-width: 500px;
+  `;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+  `;
+
+  const paymentContainer = document.createElement('div');
+  paymentContainer.id = 'payment-items';
+  paymentContainer.style.marginBottom = '20px';
+
+  // Total amount display
+  const totalDisplay = document.createElement('div');
+  totalDisplay.style.cssText = `
+    margin-top: 20px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+    text-align: right;
+    font-weight: bold;
+  `;
+  totalDisplay.textContent = '합계: ₩ 0';
+
+  function addPaymentRow() {
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    `;
+
+    const addBtn = document.createElement('button');
+    addBtn.innerHTML = '+';
+    addBtn.style.cssText = `
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      border: none;
+      background: #4CAF50;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    addBtn.onclick = addPaymentRow;
+
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.style.cssText = 'flex: 2; padding: 5px; border-radius: 5px; border: 1px solid #ccc;';
+    descInput.placeholder = '결제 내용';
+
+    const amountInput = document.createElement('input');
+    amountInput.type = 'text';
+    amountInput.style.cssText = 'flex: 1; padding: 5px; border-radius: 5px; border: 1px solid #ccc;';
+    amountInput.placeholder = '금액';
+    amountInput.oninput = function() {
+      formatCurrency(this);
+      updateTotal();
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '×';
+    deleteBtn.style.cssText = `
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      border: none;
+      background: #ff4444;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    deleteBtn.onclick = function() {
+      row.remove();
+      updateTotal();
+    };
+
+    row.appendChild(addBtn);
+    row.appendChild(descInput);
+    row.appendChild(amountInput);
+    row.appendChild(deleteBtn);
+    paymentContainer.appendChild(row);
   }
 
-  // ✅ 2. 페이지 로드 시 기본 값 설정
-  if (membershipSelect) {
-    updateAdmissionFee(); // 페이지 로드 시 자동 적용
-    membershipSelect.addEventListener("change", updateAdmissionFee); // 변경 시 업데이트
+  function updateTotal() {
+    let total = 0;
+    paymentContainer.querySelectorAll('input[type="text"]:nth-child(3)').forEach(input => {
+      const value = parseInt(input.value.replace(/[^\d]/g, '')) || 0;
+      total += value;
+    });
+    totalDisplay.textContent = '합계: ₩ ' + total.toLocaleString('ko-KR');
+  }
+
+  const confirmButton = document.createElement('button');
+  confirmButton.textContent = '확인';
+  confirmButton.style.cssText = `
+    padding: 8px 20px;
+    background: #0078D7;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    float: right;
+  `;
+
+  confirmButton.onclick = function() {
+    updatePaymentSummary();
+    document.body.removeChild(overlay);
+    document.body.removeChild(popup);
+  };
+
+  popup.appendChild(paymentContainer);
+  popup.appendChild(totalDisplay);
+  popup.appendChild(confirmButton);
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+
+  addPaymentRow(); // Add first row by default
+}
+
+// Add event listener for card checkbox
+document.addEventListener('DOMContentLoaded', function() {
+  const combinedPaymentRadio = document.querySelector('input[type="radio"][value="복합결제"]');
+  if (combinedPaymentRadio) {
+    combinedPaymentRadio.addEventListener('change', function() {
+      if (this.checked) {
+        showCardPaymentPopup();
+      }
+    });
   }
 });
 
-
-function formatCurrency(input) {
-  let value = input.value.replace(/[^\d]/g, "");
-  value = new Intl.NumberFormat("ko-KR", {
-    style: "currency",
-    currency: "KRW",
-  }).format(value);
-  value = value.replace("₩", "").trim();
-  input.value = value;
-}
-
-function updateMembershipFee(select) {
-  const membershipFee = document.getElementById('membership_fee');
-  if (membershipFee) {
-    let fee = 0;
-    switch(parseInt(select.value)) {
-      case 1: fee = 99000; break;
-      case 2: fee = 154000; break;
-      case 3: fee = 198000; break;
-      case 6: fee = 297000; break;
-      case 12: fee = 429000; break;
-      default: fee = 0;
-    }
-    membershipFee.value = fee.toLocaleString('ko-KR');
-  }
-}
-
-function calculateTotal() {
-  const rentalPrice = parseInt(document.getElementById('rental_price').value.replace(/[^\d]/g, '') || 0);
-  const lockerPrice = parseInt(document.getElementById('locker_price').value.replace(/[^\d]/g, '') || 0);
-  const membershipFee = parseInt(document.getElementById('membership_fee').value.replace(/[^\d]/g, '') || 0);
-  const discount = parseInt(document.getElementById('discount').value.replace(/[^\d]/g, '') || 0);
-
-  const total = rentalPrice + lockerPrice + membershipFee - discount;
-  const totalAmount = document.getElementById('total_amount');
-  totalAmount.value = '₩ ' + total.toLocaleString('ko-KR');
-}
-
-function updateRentalPrice(select) {
-  const rentalPrice = document.getElementById('rental_price');
-  if (rentalPrice) {
-    if (select.value) {
-      const monthlyFee = 11000;
-      const total = parseInt(select.value) * monthlyFee;
-      rentalPrice.value = '₩ ' + total.toLocaleString('ko-KR');
-    } else {
-      rentalPrice.value = '₩ 0';
-    }
-    calculateTotal();
-  }
-}
-
-function updateLockerPrice(select) {
-  const lockerPrice = document.getElementById('locker_price');
-  if (lockerPrice) {
-    if (select.value) {
-      const monthlyFee = 11000;
-      const total = parseInt(select.value) * monthlyFee;
-      lockerPrice.value = '₩ ' + total.toLocaleString('ko-KR');
-    } else {
-      lockerPrice.value = '₩ 0';
-    }
-    calculateTotal();
-  }
-}
-
-function updateMembershipFee(select) {
-  const membershipFee = document.getElementById('membership_fee');
-  if (membershipFee) {
-    let fee = 0;
-    switch(parseInt(select.value)) {
-      case 1: fee = 99000; break;
-      case 2: fee = 154000; break;
-      case 3: fee = 198000; break;
-      case 6: fee = 297000; break;
-      case 12: fee = 429000; break;
-      default: fee = 0;
-    }
-    membershipFee.value = '₩ ' + fee.toLocaleString('ko-KR');
-    calculateTotal();
-  }
-}
-
-function formatMonths(input) {
-  let value = input.value.replace(/[^0-9]/g, '');
-  if (value) {
-    input.value = value + '개월';
-    if (input.id === 'membership_months') {
-      const membershipFee = document.getElementById('membership_fee');
-      if (membershipFee) {
-        let fee = 0;
-        switch(parseInt(value)) {
-          case 1: fee = 99000; break;
-          case 2: fee = 154000; break;
-          case 3: fee = 198000; break;
-          case 6: fee = 297000; break;
-          case 12: fee = 429000; break;
-          default: fee = 0;
-        }
-        membershipFee.value = fee.toLocaleString('ko-KR');
-        membershipFee.style.backgroundColor = '#f5f5f5';
-        membershipFee.readOnly = true;
-      }
-    }
-  }
-}
-
+// 📌 회원권 가격
 function updateAdmissionFee() {
   const membershipSelect = document.getElementById("membership");
   const admissionFeeInput = document.getElementById("admission_fee");
@@ -602,6 +687,67 @@ function updateAdmissionFee() {
   admissionFeeInput.value = fee.toLocaleString("ko-KR");
   admissionFeeInput.style.backgroundColor = "#f5f5f5";
   admissionFeeInput.readOnly = true;
+  calculateTotal(); // Added to update total on membership change
+}
+
+
+// 📌 운동복 가격
+function updateRentalPrice(select) {
+  const rentalPrice = document.getElementById('rental_price');
+  if (rentalPrice) {
+    if (select.value) {
+      const monthlyFee = 11000;
+      const total = parseInt(select.value) * monthlyFee;
+      rentalPrice.value = '₩ ' + total.toLocaleString('ko-KR');
+    } else {
+      rentalPrice.value = '₩ 0';
+    }
+    calculateTotal();
+  }
+}
+
+// 📌 라커 가격
+function updateLockerPrice(select) {
+  const lockerPrice = document.getElementById('locker_price');
+  if (lockerPrice) {
+    if (select.value) {
+      const monthlyFee = 11000;
+      const total = parseInt(select.value) * monthlyFee;
+      lockerPrice.value = '₩ ' + total.toLocaleString('ko-KR');
+    } else {
+      lockerPrice.value = '₩ 0';
+    }
+    calculateTotal();
+  }
+}
+
+// 📌 기간회비 가격
+function updateMembershipFee(select) {
+  const membershipFee = document.getElementById('membership_fee');
+  if (membershipFee) {
+    let fee = 0;
+    switch(parseInt(select.value)) {
+      case 1: fee = 99000; break;
+      case 2: fee = 154000; break;
+      case 3: fee = 198000; break;
+      case 6: fee = 297000; break;
+      case 12: fee = 429000; break;
+      default: fee = 0;
+    }
+    membershipFee.value = fee.toLocaleString('ko-KR');
+    calculateTotal(); // Added to update total on membership fee change
+  }
+}
+
+
+function formatCurrency(input) {
+  let value = input.value.replace(/[^\d]/g, "");
+  value = new Intl.NumberFormat("ko-KR", {
+    style: "currency",
+    currency: "KRW",
+  }).format(value);
+  value = value.replace("₩", "").trim();
+  input.value = value;
 }
 
 function showDiscountPopup() {
@@ -683,6 +829,7 @@ function showDiscountPopup() {
     `;
     deleteBtn.onclick = function() {
       row.remove();
+      calculateTotal(); // Added to recalculate total after removing a discount row
     };
 
     row.appendChild(select);
@@ -744,4 +891,64 @@ function showDiscountPopup() {
   document.body.appendChild(popup);
 
   addDiscountRow(); // Add first row by default
+}
+
+function calculateTotal() {
+  const admissionFee = parseInt(document.getElementById('admission_fee').value.replace(/[^\d]/g, '') || 0);
+  const rentalPrice = parseInt(document.getElementById('rental_price').value.replace(/[^\d]/g, '') || 0);
+  const lockerPrice = parseInt(document.getElementById('locker_price').value.replace(/[^\d]/g, '') || 0);
+  const membershipFee = parseInt(document.getElementById('membership_fee').value.replace(/[^\d]/g, '') || 0);
+  const discount = parseInt(document.getElementById('discount').value.replace(/[^\d]/g, '') || 0);
+
+  const total = admissionFee + rentalPrice + lockerPrice + membershipFee - discount;
+  const combinedPaymentRadio = document.querySelector('input[type="radio"][value="복합결제"]');
+  const totalAmount = document.getElementById('total_amount');
+  const unpaidField = document.getElementById('unpaid');
+
+  totalAmount.value = '₩ ' + total.toLocaleString('ko-KR');
+
+  if (combinedPaymentRadio && combinedPaymentRadio.checked) {
+    const combinedPaymentTotal = getCombinedPaymentTotal();
+    const unpaidAmount = total - combinedPaymentTotal;
+    unpaidField.value = '결제예정 ₩' + (unpaidAmount > 0 ? unpaidAmount.toLocaleString('ko-KR') : '0');
+    unpaidField.style.backgroundColor = unpaidAmount > 0 ? '#ffebeb' : '#f5f5f5';
+  } else {
+    unpaidField.value = '';
+    unpaidField.style.backgroundColor = '#f5f5f5';
+  }
+
+  console.log(`🎯 Total Calculation: ${admissionFee} + ${rentalPrice} + ${lockerPrice} + ${membershipFee} - ${discount} = ${total}`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const membershipSelect = document.getElementById('membership');
+  const rentalMonthsSelect = document.getElementById('rental_months');
+  const lockerMonthsSelect = document.getElementById('locker_months');
+  const membershipMonthsSelect = document.getElementById('membership_months');
+  const discountInput = document.getElementById('discount');
+
+  membershipSelect.addEventListener('change', updateAdmissionFee);
+  rentalMonthsSelect.addEventListener('change', () => updateRentalPrice(rentalMonthsSelect));
+  lockerMonthsSelect.addEventListener('change', () => updateLockerPrice(lockerMonthsSelect));
+  membershipMonthsSelect.addEventListener('change', () => updateMembershipFee(membershipMonthsSelect));
+  //Event Listener for Discount Input
+  discountInput.addEventListener('input', calculateTotal);
+
+  calculateTotal(); // Initial calculation
+
+});
+
+function getCombinedPaymentTotal() {
+  const paymentItems = document.querySelectorAll('#payment-items input');
+  let total = 0;
+  paymentItems.forEach((input, index) => {
+    if (index % 2 === 0) {
+      const amount = paymentItems[index + 1]?.value || '0';
+      if (amount) {
+        const numAmount = parseInt(amount.replace(/[^\d]/g, '')) || 0;
+        total += numAmount;
+      }
+    }
+  });
+  return total;
 }

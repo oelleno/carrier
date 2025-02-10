@@ -1,30 +1,33 @@
+
 // Firebase SDK 불러오기
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-storage.js";
 
 // Firebase 설정
 const firebaseConfig = {
-    apiKey: "AIzaSyB5eg_cGwUxD_h_RCXQ3SMtiPiJcJqEc6Q",
-    authDomain: "test-cebcd.firebaseapp.com",
-    projectId: "test-cebcd",
-    storageBucket: "test-cebcd.appspot.com",
-    messagingSenderId: "358391531726",
-    appId: "1:358391531726:web:eb6c5a39c199d654c2e89f"
+    apiKey: "AIzaSyAyP5QTMzBtz8lMEzkE4C66CjFbZ3a17QM",
+    authDomain: "bodystar-1b77d.firebaseapp.com",
+    projectId: "bodystar-1b77d",
+    storageBucket: "bodystar-1b77d.firebasestorage.app",
+    messagingSenderId: "1011822927832",
+    appId: "1:1011822927832:web:87f0d859b3baf1d8e21cad"
 };
 
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // 가입 완료 버튼 클릭 시 실행될 함수
 async function submitForm() {
     return new Promise(async (resolve, reject) => {
         try {
             const formData = new FormData();
-            const name = document.getElementById('userid').value.trim();
+            const name = document.getElementById('name').value.trim();
             const contact = document.getElementById('contact').value.trim();
-            const birthdate = document.getElementById('userpw_re').value.trim();
-            const address = document.getElementById('sample6_address').value.trim();
+            const birthdate = document.getElementById('birthdate').value.trim();
+            const address = document.getElementById('main_address').value.trim();
             const membership = document.getElementById('membership').value.trim();
 
             if (!name || !contact) {
@@ -43,12 +46,26 @@ async function submitForm() {
                             (now.getMonth() + 1).toString().padStart(2, '0') + 
                             now.getDate().toString().padStart(2, '0');
 
-            // Firestore에서 오늘 저장된 문서 개수 조회하여 번호 생성
+            // Get today's documents only
+            const startOfDay = new Date(now.setHours(0,0,0,0));
+            const endOfDay = new Date(now.setHours(23,59,59,999));
+            
             const querySnapshot = await getDocs(collection(db, "회원가입계약서"));
-            const dailyNumber = (querySnapshot.size + 1).toString().padStart(2, '0'); // 2자리 번호
+            let todayDocs = 0;
+            querySnapshot.forEach(doc => {
+                const docDate = new Date(doc.data().timestamp);
+                if (docDate >= startOfDay && docDate <= endOfDay) {
+                    todayDocs++;
+                }
+            });
+            
+            const dailyNumber = (todayDocs + 1).toString().padStart(3, '0'); // 3자리 번호
 
-            // 문서 ID 생성 (YYMMDD + 2자리 순번 + 이름)
-            const docId = `${dateStr}${dailyNumber}_${name}`;
+            // Store the document number for image upload
+            localStorage.setItem('current_doc_number', dailyNumber);
+
+            // 문서 ID 생성 (YYMMDD_001_이름 형식)
+            const docId = `${dateStr}_${dailyNumber}_${name}`;
 
             // 저장할 데이터
             const userData = {
@@ -81,4 +98,22 @@ async function submitForm() {
 }
 
 // HTML에서 호출할 수 있도록 전역 함수로 설정
+// Image upload function
+async function uploadImage(fileName, blob) {
+    try {
+        const { ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/11.3.0/firebase-storage.js");
+        const storageRef = ref(storage, `회원가입계약서/${fileName}`);
+        await uploadBytes(storageRef, blob);
+        console.log("Firebase Storage 업로드 완료!");
+        
+        const downloadURL = await getDownloadURL(storageRef);
+        console.log("Firebase URL:", downloadURL);
+        return downloadURL;
+    } catch (error) {
+        console.error("Firebase Storage 업로드 실패:", error);
+        throw error;
+    }
+}
+
 window.submitForm = submitForm;
+window.uploadImage = uploadImage;
