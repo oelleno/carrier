@@ -130,6 +130,11 @@
             try {
                 const credential = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
                 await auth.signInWithCredential(credential);
+                
+                // Format and store verified phone number in localStorage
+                const phoneNumber = document.getElementById('phone').value;
+                const formattedPhone = phoneNumber.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+                localStorage.setItem('verifiedPhone', formattedPhone);
 
                 document.getElementById('phone-section').style.display = 'none';
                 document.getElementById('verification-code-section').style.display = 'none';

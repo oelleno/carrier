@@ -130,7 +130,16 @@
         </div>
         <div>
           <p><i class="fas fa-phone" style="margin-right: 5px;"></i>연락처</p>
-          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000">
+          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000" readonly style="background-color: #f5f5f5;">
+          <script>
+            // Auto-fill verified phone number
+            window.onload = function() {
+              const verifiedPhone = localStorage.getItem('verifiedPhone');
+              if (verifiedPhone) {
+                document.getElementById('contact').value = verifiedPhone;
+              }
+            };
+          </script>
         </div>
         <div class="gender-group">
           <p><i class="fas fa-venus-mars" style="margin-right: 5px;"></i>성별</p>
