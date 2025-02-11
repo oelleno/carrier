@@ -3,112 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>전화번호 인증</title>
+    <title>계약서 선택</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <style>
+        .container { 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
         .card {
             border-radius: 15px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
         }
         .card-body { padding: 2rem; }
-        .form-control:focus {
-            box-shadow: none;
-            border-color: var(--bs-primary);
-        }
-        .btn-primary { padding: 0.6rem 1.5rem; }
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.5);
-            padding: 2rem;
-            border-radius: 10px;
-        }
-        .alert {
-            margin-top: 1rem;
-            margin-bottom: 0;
-        }
-        #verification-form { transition: all 0.3s ease; }
-        .input-group-text { min-width: 50px; }
-        #contracts-form {
-            opacity: 0;
-            animation: fadeIn 0.5s forwards;
-        }
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-        #contracts-form .btn-lg {
+        .btn-contract {
+            width: 100%;
+            margin-bottom: 1rem;
             padding: 1rem;
             font-size: 1.1rem;
         }
-        #contracts-form .btn-secondary {
-            opacity: 0.6;
-            cursor: not-allowed;
+        #verification-section, #admin-section {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5" style="margin-top: 500px ! important;">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h2 class="card-title text-center mb-4">전화번호 인증</h2>
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <div id="contract-selection">
+                    <h2 class="text-center mb-4">계약서 선택</h2>
+                    <button class="btn btn-primary btn-contract" onclick="showVerification()">회원가입계약서</button>
+                    <button class="btn btn-secondary btn-contract" disabled>PT계약서 (준비중)</button>
+                    <button class="btn btn-secondary btn-contract" disabled>일일권계약서 (준비중)</button>
+                </div>
 
-                        <!-- 전화번호 입력 -->
-                        <div id="phone-form" class="mb-3">
-                            <label for="phone" class="form-label">전화번호</label>
-                            <div class="input-group">
-                                <span class="input-group-text">+82</span>
-                                <input type="tel" class="form-control" id="phone" placeholder="01012341234">
-                            </div>
-                            <div class="form-text">국가 번호를 제외한 전화번호를 입력하세요</div>
-                            <button id="send-code" class="btn btn-primary mt-3 w-100">인증번호 전송</button>
-                            <div id="recaptcha-container"></div> <!-- reCAPTCHA 컨테이너 -->
-
-                            <!-- 관리자 코드 입력 -->
-                            <div id="admin-form" class="mt-2" style="font-size: 0.9em;">
-                                <div class="input-group input-group-sm">
-                                    <input type="password" class="form-control form-control-sm" id="admin-code" placeholder="관리자 코드">
-                                    <button class="btn btn-secondary btn-sm" id="verify-admin">확인</button>
-                                </div>
-                            </div>
+                <div id="verification-section">
+                    <h2 class="text-center mb-4">인증</h2>
+                    <div id="phone-section" class="mb-3">
+                        <label class="form-label">전화번호</label>
+                        <div class="input-group">
+                            <span class="input-group-text">+82</span>
+                            <input type="tel" class="form-control" id="phone" placeholder="01012341234">
                         </div>
-
-                        <!-- 인증번호 입력 -->
-                        <div id="verification-form" class="mb-3 d-none">
-                            <label for="verification-code" class="form-label">인증번호</label>
+                        <button id="send-code" class="btn btn-primary mt-3 w-100">인증번호 전송</button>
+                    </div>
+                    <div id="verification-code-section" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">인증번호</label>
                             <input type="text" class="form-control" id="verification-code" placeholder="6자리 코드 입력">
                             <button id="verify-code" class="btn btn-success mt-3 w-100">인증하기</button>
-                            <button id="resend-code" class="btn btn-link mt-2 w-100">인증번호 재전송</button>
                         </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <p></p>
+                        <button onclick="showAdminSection()" class="btn btn-secondary">관리자코드
+                            입력</button>
+                    </div>
+                    <div id="verification-success" style="display: none;" class="alert alert-success mt-3">
+                        인증이 완료되었습니다!
+                    </div>
+                </div>
 
-                        <!-- 상태 메시지 -->
-                        <div id="status" class="alert d-none" role="alert"></div>
-
-                        <!-- 로딩 스피너 -->
-                        <div id="loading" class="text-center d-none">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">로딩중...</span>
-                            </div>
-                        </div>
+                <div id="admin-section">
+                    <h2 class="text-center mb-4">관리자 인증</h2>
+                    <div class="mb-3">
+                        <label class="form-label">관리자 코드</label>
+                        <input type="password" class="form-control" id="admin-code">
+                        <button onclick="verifyAdmin()" class="btn btn-primary mt-3 w-100">확인</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-
     <script>
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyAyP5QTMzBtz8lMEzkE4C66CjFbZ3a17QM",
             authDomain: "bodystar-1b77d.firebaseapp.com",
@@ -118,177 +92,72 @@
             appId: "1:1011822927832:web:87f0d859b3baf1d8e21cad"
         };
 
-        // Firebase 초기화
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        auth.languageCode = "ko"; // 한글 인증 문자 설정
+        auth.languageCode = "ko";
 
-        // DOM 요소
-        const phoneForm = document.getElementById('phone-form');
-        const verificationForm = document.getElementById('verification-form');
-        const phoneInput = document.getElementById('phone');
-        const verificationCodeInput = document.getElementById('verification-code');
-        const sendCodeBtn = document.getElementById('send-code');
-        const verifyCodeBtn = document.getElementById('verify-code');
-        const resendCodeBtn = document.getElementById('resend-code');
-        const statusDiv = document.getElementById('status');
-        const loadingDiv = document.getElementById('loading');
+        function showVerification() {
+            document.getElementById('contract-selection').style.display = 'none';
+            document.getElementById('verification-section').style.display = 'block';
+        }
 
         let verificationId = '';
 
-        // 상태 메시지 표시
-        function showStatus(message, type = 'info') {
-            statusDiv.textContent = message;
-            statusDiv.className = `alert alert-${type}`;
-            statusDiv.classList.remove('d-none');
-        }
+        document.getElementById('send-code').addEventListener('click', async () => {
+            const phone = document.getElementById('phone').value;
+            if (!phone) return;
 
-        // 로딩 상태 토글
-        function toggleLoading(show) {
-            loadingDiv.classList.toggle('d-none', !show);
-            sendCodeBtn.disabled = show;
-            verifyCodeBtn.disabled = show;
-            resendCodeBtn.disabled = show;
-        }
-
-        // 전화번호 유효성 검사
-        function validatePhone(phone) {
-            return /^[0-9]{10,11}$/.test(phone);
-        }
-
-        // 인증번호 전송
-        async function sendVerificationCode(phone) {
             try {
-                toggleLoading(true);
-                const formattedPhone = `+82${phone}`;
-
-                const appVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-                    size: 'invisible',
-                    callback: () => {}
+                const appVerifier = new firebase.auth.RecaptchaVerifier('send-code', {
+                    size: 'invisible'
                 });
 
-                // 인증번호 전송 (한글로)
+                const formattedPhone = `+82${phone}`;
                 const confirmationResult = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
                 verificationId = confirmationResult.verificationId;
 
-                phoneForm.classList.add('d-none');
-                verificationForm.classList.remove('d-none');
-                showStatus('인증번호가 전송되었습니다!', 'success');
+                document.getElementById('verification-code-section').style.display = 'block';
             } catch (error) {
-                console.error('인증번호 전송 오류:', error);
-                showStatus(error.message, 'danger');
-            } finally {
-                toggleLoading(false);
+                console.error(error);
+                alert('인증번호 전송 실패');
             }
-        }
+        });
 
-        // 인증번호 확인
-        async function verifyCode(code) {
+        document.getElementById('verify-code').addEventListener('click', async () => {
+            const code = document.getElementById('verification-code').value;
+            if (!code) return;
+
             try {
-                toggleLoading(true);
                 const credential = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
                 await auth.signInWithCredential(credential);
-                console.log(credential);
-                showStatus('전화번호가 성공적으로 인증되었습니다!', 'success');
 
-                // Show admin verification form after phone verification
-                const adminVerificationHtml = `
-                    <div id="admin-verify-after-phone" class="mt-3">
-                        <label class="form-label">관리자 코드 입력</label>
-                        <div class="input-group">
-                            <input type="password" class="form-control" id="admin-code-after-phone" placeholder="관리자 코드">
-                            <button class="btn btn-primary" id="verify-admin-after-phone">확인</button>
-                        </div>
-                    </div>`;
-                verificationForm.innerHTML = adminVerificationHtml;
-
-                // Add event listener for admin verification after phone
-                document.getElementById('verify-admin-after-phone').addEventListener('click', () => {
-                    const adminCode = document.getElementById('admin-code-after-phone').value;
-                    if (adminCode === '0000') {
-                        showContractsUI(phoneInput.value);
-                    } else {
-                        showStatus('잘못된 관리자 코드입니다.', 'danger');
-                    }
-                });
-
-                // Add Enter key event listener
-                document.getElementById('admin-code-after-phone').addEventListener('keyup', (event) => {
-                    if (event.key === 'Enter') {
-                        document.getElementById('verify-admin-after-phone').click();
-                    }
-                });
-
+                document.getElementById('phone-section').style.display = 'none';
+                document.getElementById('verification-code-section').style.display = 'none';
+                document.getElementById('verification-success').style.display = 'block';
+                
+                setTimeout(() => {
+                    document.getElementById('verification-section').style.display = 'none';
+                    document.getElementById('admin-section').style.display = 'block';
+                }, 1500);
             } catch (error) {
-                console.error('인증번호 확인 오류:', error);
-                showStatus(error.message, 'danger');
-            } finally {
-                toggleLoading(false);
+                console.error(error);
+                alert('인증 실패');
             }
+        });
+
+        function showAdminSection() {
+            document.getElementById('verification-section').style.display = 'none';
+            document.getElementById('admin-section').style.display = 'block';
         }
 
-
-        // 관리자 코드 확인 함수
         function verifyAdmin() {
             const adminCode = document.getElementById('admin-code').value;
             if (adminCode === '0000') {
-                showContractsUI(phoneInput.value);
+                window.location.href = 'membership.html';
             } else {
-                showStatus('잘못된 관리자 코드입니다.', 'danger');
+                alert('잘못된 관리자 코드입니다.');
             }
         }
-
-        // 관리자 코드 Enter 키 이벤트
-        document.getElementById('admin-code').addEventListener('keyup', (event) => {
-            if (event.key === 'Enter') {
-                verifyAdmin();
-            }
-        });
-
-        document.getElementById('verify-admin').addEventListener('click', verifyAdmin);
-
-        // 계약서 UI 표시 함수
-        function showContractsUI(phone) {
-            // 모든 인증 관련 UI 숨기기
-            phoneForm.classList.add('d-none');
-            verificationForm.classList.add('d-none');
-            statusDiv.classList.add('d-none');
-
-            // 계약서 UI 표시
-            const contractsHtml = `
-                <div id="contracts-form" class="text-center">
-                    <h3 class="mb-4">계약서 선택</h3>
-                    <div class="d-grid gap-3">
-                        <a href="membership.html?phone=${phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}" class="btn btn-primary btn-lg">회원가입계약서</a>
-                        <button class="btn btn-secondary btn-lg" disabled title="준비중">PT계약서 (준비중)</button>
-                        <button class="btn btn-secondary btn-lg" disabled title="준비중">일일권계약서 (준비중)</button>
-                    </div>
-                </div>`;
-            document.querySelector('.card-body').innerHTML = contractsHtml;
-        }
-
-        // 이벤트 리스너
-        sendCodeBtn.addEventListener('click', () => {
-            const phone = phoneInput.value.trim();
-            if (!validatePhone(phone)) {
-                showStatus('올바른 전화번호를 입력해주세요', 'danger');
-                return;
-            }
-            sendVerificationCode(phone);
-        });
-
-        verifyCodeBtn.addEventListener('click', () => {
-            const code = verificationCodeInput.value.trim();
-            if (!code || code.length !== 6) {
-                showStatus('올바른 6자리 인증번호를 입력해주세요', 'danger');
-                return;
-            }
-            verifyCode(code);
-        });
-
-        resendCodeBtn.addEventListener('click', () => {
-            sendVerificationCode(phoneInput.value.trim());
-        });
     </script>
 </body>
 </html>
