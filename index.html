@@ -42,7 +42,7 @@
                 </div>
 
                 <div id="verification-section">
-                    <h2 class="text-center mb-4">인증</h2>
+                    <h2 class="text-center mb-4">전화번호 인증</h2>
                     <div id="phone-section" class="mb-3">
                         <label class="form-label">전화번호</label>
                         <div class="input-group">
@@ -130,7 +130,7 @@
             try {
                 const credential = firebase.auth.PhoneAuthProvider.credential(verificationId, code);
                 await auth.signInWithCredential(credential);
-                
+
                 // Format and store verified phone number in localStorage
                 const phoneNumber = document.getElementById('phone').value;
                 const formattedPhone = phoneNumber.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-$2-$3');
@@ -139,7 +139,7 @@
                 document.getElementById('phone-section').style.display = 'none';
                 document.getElementById('verification-code-section').style.display = 'none';
                 document.getElementById('verification-success').style.display = 'block';
-                
+
                 setTimeout(() => {
                     document.getElementById('verification-section').style.display = 'none';
                     document.getElementById('admin-section').style.display = 'block';
@@ -163,6 +163,25 @@
                 alert('잘못된 관리자 코드입니다.');
             }
         }
+
+        // Add Enter key functionality
+        document.getElementById('phone').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('send-code').click();
+            }
+        });
+
+        document.getElementById('verification-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verify-code').click();
+            }
+        });
+
+        document.getElementById('admin-code').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyAdmin();
+            }
+        });
     </script>
 </body>
 </html>
