@@ -8,10 +8,13 @@
   <title>회원 가입</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="./script.js"></script>
+  <script src="./dictation.js"></script>
+  <script type="module" src="./excel.js"></script>
   <link rel="stylesheet" href="./style.css">
   <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <script src="https://cdn.ckeditor.com/ckeditor5/34.0.0/classic/ckeditor.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="./pencheck.js"></script> <!-- ✏️ 형광펜 -->
   <script>
     function sample6_execDaumPostcode() {
@@ -130,13 +133,15 @@
         </div>
         <div>
           <p><i class="fas fa-phone" style="margin-right: 5px;"></i>연락처</p>
-          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000" readonly style="background-color: #f5f5f5;">
+          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000" oninput="formatPhoneNumber(this)">
           <script>
             // Auto-fill verified phone number
             window.onload = function() {
               const verifiedPhone = localStorage.getItem('verifiedPhone');
               if (verifiedPhone) {
                 document.getElementById('contact').value = verifiedPhone;
+                document.getElementById('contact').readOnly = true;
+                document.getElementById('contact').style.backgroundColor = '#f5f5f5';
               }
             };
           </script>
@@ -599,6 +604,7 @@
   </script>
   <div class="button-container">
     <button type="button" onclick="handleSubmit()" class="submitBtn">가입완료</button>
+    <div id="status" style="color: #4CAF50; margin-top: 10px; font-weight: bold;"></div>
     <script type="module" src="./firebase.js"></script>
   </div>
   </form>

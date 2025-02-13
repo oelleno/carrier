@@ -111,6 +111,7 @@ p {
 
 /* Personal info input fields */
 input[name="userid"],
+input[name="name"],
 input[name="contact"],
 input[name="birthdate"],
 input[name="address"],

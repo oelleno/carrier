@@ -24,7 +24,10 @@ function validateForm() {
 
 function downloadAsImage() {
   const container = document.querySelector('.container');
-  html2canvas(container).then(canvas => {
+  html2canvas(container, {
+      backgroundColor: '#f5f5f5',
+      scale: 0.8
+    }).then(canvas => {
     console.log("📸 html2canvas 실행 완료");
 
     // Get current date in YYMMDD format
@@ -90,12 +93,12 @@ function downloadAsImage() {
 `;
 
     const chatImage = document.createElement('img');
-    chatImage.src = './chat.png';
+    chatImage.src = './BDSR.png';
     chatImage.style.maxWidth = '300px';
     chatImage.style.cursor = 'pointer';
 
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '↓채팅창에 적어서 보내주세요↓<br>"지점/이름"';
+    closeBtn.innerHTML = '창닫기 버튼 수정예정';
     closeBtn.style.cssText = `
    margin-top: 10px;
     padding: 5px 20px;
@@ -108,7 +111,25 @@ function downloadAsImage() {
     font-size: 16px; /* 글자 크기 조정 */
     `;
 
+    const codeBtn = document.createElement('button');
+    codeBtn.textContent = '엑셀 업데이트';
+    codeBtn.onclick = function() { submitqqForm(); };
+    codeBtn.style.cssText = `
+    margin-top: 10px;
+    padding: 5px 20px;
+    background: #03C75A;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 10px;
+    `;
+
+
     popup.appendChild(chatImage);
+    popup.appendChild(codeBtn);
     popup.appendChild(closeBtn);
     document.body.appendChild(popup);
     console.log("🎉 팝업 생성 완료");
@@ -511,7 +532,6 @@ function updatePaymentSummary() {
         unpaidField.style.backgroundColor = unpaidAmount > 0 ? '#ffebeb' : '#f5f5f5';
       }
     } 
-    
   }
 }
 
@@ -595,6 +615,11 @@ function showCardPaymentPopup() {
     amountInput.oninput = function() {
       formatCurrency(this);
       updateTotal();
+    };
+    amountInput.onkeypress = function(e) {
+      if (e.key === 'Enter') {
+        confirmButton.click();
+      }
     };
 
     const deleteBtn = document.createElement('button');
@@ -809,6 +834,11 @@ function showDiscountPopup() {
     input.style.cssText = 'flex: 1; padding: 5px; border-radius: 5px;';
     input.placeholder = '금액 입력 (₩)';
     input.oninput = function() { formatCurrency(this); };
+    input.onkeypress = function(e) {
+      if (e.key === 'Enter') {
+        confirmButton.click();
+      }
+    };
 
     const deleteBtn = document.createElement('button');
     deleteBtn.innerHTML = '×';

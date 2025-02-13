@@ -1,35 +1,44 @@
 <!DOCTYPE html>
 <html lang="ko" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>계약서 선택</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <style>
-        .container { 
+        .container {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
         }
+
         .card {
             border-radius: 15px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 500px;
         }
-        .card-body { padding: 2rem; }
+
+        .card-body {
+            padding: 2rem;
+        }
+
         .btn-contract {
             width: 100%;
             margin-bottom: 1rem;
             padding: 1rem;
             font-size: 1.1rem;
         }
-        #verification-section, #admin-section {
+
+        #verification-section,
+        #admin-section {
             display: none;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="card">
@@ -60,7 +69,7 @@
                     </div>
                     <div class="text-center mt-3">
                         <p></p>
-                        <button onclick="showAdminSection()" class="btn btn-secondary">관리자코드
+                        <button id="admin-button" onclick="showAdminSection()" class="btn btn-secondary">관리자코드
                             입력</button>
                     </div>
                     <div id="verification-success" style="display: none;" class="alert alert-success mt-3">
@@ -117,6 +126,8 @@
                 verificationId = confirmationResult.verificationId;
 
                 document.getElementById('verification-code-section').style.display = 'block';
+                document.getElementById('phone-section').style.display = 'none';
+                document.getElementById('admin-button').style.display = 'none';
             } catch (error) {
                 console.error(error);
                 alert('인증번호 전송 실패');
@@ -165,23 +176,24 @@
         }
 
         // Add Enter key functionality
-        document.getElementById('phone').addEventListener('keypress', function(e) {
+        document.getElementById('phone').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 document.getElementById('send-code').click();
             }
         });
 
-        document.getElementById('verification-code').addEventListener('keypress', function(e) {
+        document.getElementById('verification-code').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 document.getElementById('verify-code').click();
             }
         });
 
-        document.getElementById('admin-code').addEventListener('keypress', function(e) {
+        document.getElementById('admin-code').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 verifyAdmin();
             }
         });
     </script>
 </body>
+
 </html>
