@@ -41,6 +41,14 @@ body {
   }
 }
 
+/* 3. 모바일(768px 이하)에서만 원래 크기로 유지 */
+@media (max-width: 767px) {
+  .container {
+    width: 1000px; /* 원래 크기 고정 */
+    max-width: unset; /* 최대 너비 제한 해제 */
+    min-width: unset; /* 최소 너비 제한 해제 */
+  }
+}
 
 /* 2. 레이아웃 및 섹션 스타일 */
 .header-container {
