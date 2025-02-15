@@ -7,6 +7,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>회원 가입</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAyP5QTMzBtz8lMEzkE4C66CjFbZ3a17QM",
+      authDomain: "bodystar-1b77d.firebaseapp.com",
+      projectId: "bodystar-1b77d",
+      storageBucket: "bodystar-1b77d.firebasestorage.app",
+      messagingSenderId: "1011822927832",
+      appId: "1:1011822927832:web:87f0d859b3baf1d8e21cad"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
   <script src="./script.js"></script>
   <script src="./dictation.js"></script>
   <script type="module" src="./excel.js"></script>
@@ -133,10 +149,11 @@
         </div>
         <div>
           <p><i class="fas fa-phone" style="margin-right: 5px;"></i>연락처</p>
-          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000" oninput="formatPhoneNumber(this)">
+          <input type="text" name="contact" id="contact" maxlength="20" class="thisbox" placeholder="000-0000-0000"
+            oninput="formatPhoneNumber(this)">
           <script>
             // Auto-fill verified phone number
-            window.onload = function() {
+            window.onload = function () {
               const verifiedPhone = localStorage.getItem('verifiedPhone');
               if (verifiedPhone) {
                 document.getElementById('contact').value = verifiedPhone;
@@ -376,14 +393,46 @@
             <!-- 복합결제 내역 -->
             <div id="payment-summary"
               style="margin-top: 5px; margin-bottom: -70px; border: 1px solid #ccc; background-color: #f5f5f5; border-radius: 10px; padding: 8px; min-height: 30px; width: 47.5%; margin-right: 0px; font-size: 14px;">
-             </div>
+            </div>
           </div>
 
-          <p style="margin-top: 13px; width: 45.6%;"><i class="fas fa-calendar-plus" style="margin-right: 5px;"></i>회원권 시작일</p>
+          <p style="margin-top: 13px; width: 45.6%;"><i class="fas fa-calendar-plus" style="margin-right: 5px;"></i>회원권
+            시작일</p>
           <input type="date" name="membership_start_date" id="membership_start_date" class="thisbox"
             style="width: 46%;">
           <script>
             document.getElementById('membership_start_date').valueAsDate = new Date();
+
+            // 관리자코드에 기존 고객 정보 불러오기
+            window.addEventListener('DOMContentLoaded', async function () {
+              const urlParams = new URLSearchParams(window.location.search);
+              const shouldLoad = urlParams.get('load') === 'true';
+              const phone = urlParams.get('phone');
+
+              if (shouldLoad && phone) {
+                try {
+                  const querySnapshot = await db.collection("회원가입계약서").get();
+                  querySnapshot.forEach((doc) => {
+                    if (doc.data().contact === phone) {
+                      const data = doc.data();
+
+                      // Fill in all form fields
+                      document.getElementById('name').value = data.name || '';
+                      document.getElementById('contact').value = data.contact || '';
+                      document.getElementById('birthdate').value = data.birthdate || '';
+                      document.getElementById('main_address').value = data.address || '';
+                      // Set radio buttons
+                      if (data.gender) {
+                        document.querySelector(`input[name="gender"][value="${data.gender}"]`).checked = true;
+                      }
+                    }
+                  });
+                } catch (error) {
+                  console.error("Error loading member data:", error);
+                  alert('데이터 불러오기 실패');
+                }
+              }
+            });
           </script>
         </div>
       </div>

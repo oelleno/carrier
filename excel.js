@@ -41,6 +41,7 @@ window.submitqqForm = async function() {
     // Firestore에서 가져온 데이터 매핑
     const userData = docSnap.data();
     const newData = [[
+      userData.docId || "N/A",
       userData.branch || "N/A",
       userData.contract_manager || "N/A",
       userData.name || "N/A",
@@ -73,7 +74,7 @@ window.submitqqForm = async function() {
     let existingData = [];
     const sheetName = "회원가입계약서";
     const headerRow = [
-      "지점", "계약담당자", "이름", "연락처", "성별", 
+      "ID", "지점", "계약담당자", "이름", "연락처", "성별", 
       "생년월일", "주소", "회원권", "운동복대여", "라커대여", 
       "기간", "할인", "합계", "결제방법", "결제예정",
       "운동목적", "기타목적", "운동시간", "가입경로", "시작일", 
